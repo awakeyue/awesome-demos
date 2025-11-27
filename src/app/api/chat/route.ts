@@ -17,6 +17,7 @@ export async function POST(req: Request) {
   const model = createOpenAICompatible({
     baseURL: modelInfo.baseURL,
     apiKey: modelInfo.apiKey,
+    name: modelInfo.name,
   });
 
   const result = streamText({
