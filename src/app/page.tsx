@@ -36,10 +36,10 @@ export default function Home() {
     },
     {
       id: 2,
-      title: "CSS 动画和过渡",
-      description: "使用现代 CSS 技术创建流畅高效的动画效果",
-      link: "#",
-      tags: ["CSS", "动画"],
+      title: "AI 聊天",
+      description: "使用多种模型，于AI聊天",
+      link: "/chat",
+      tags: ["AI", "SSE"],
     },
     {
       id: 3,
