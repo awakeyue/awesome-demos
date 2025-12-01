@@ -166,8 +166,8 @@ export default function ChatArea() {
               variant="outline"
               className="rounded-full shadow-md"
             >
-              {status === "streaming" ? <Spinner /> : <ArrowDown />}
-              查看最新
+              <ArrowDown />
+              {status === "streaming" ? "生成中，查看最新" : "查看最新"}
             </Button>
           </div>
         </div>
