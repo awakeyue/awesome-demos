@@ -17,6 +17,8 @@ import {
   ChevronDown,
   ChevronRight,
   FileCode,
+  RotateCw, // 重试图标
+  Trash2, // 删除图标
 } from "lucide-react";
 import {
   Tooltip,
@@ -25,48 +27,141 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { AgentLogo } from "./agent-logo";
+import { CollapsibleText } from "@/components/custom/collapsible-text";
 
 interface ChatMessageProps {
   message: UIMessage;
+  // 新增 Props
+  onRetry?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  isLoading?: boolean;
+  isLatest?: boolean;
 }
 
-const ChatMessage = memo(({ message }: ChatMessageProps) => {
-  const isUser = message.role === "user";
+const ChatMessage = memo(
+  ({ message, onRetry, onDelete, isLoading, isLatest }: ChatMessageProps) => {
+    const isUser = message.role === "user";
 
-  return (
-    <div
-      className={cn(
-        "mb-6 flex w-full",
-        isUser ? "justify-end" : "justify-start",
-      )}
-    >
+    // 提取纯文本内容用于复制
+    const textContent = message.parts
+      .filter((part) => part.type === "text")
+      .map((part) => (part as TextUIPart).text)
+      .join("");
+
+    // 复制功能
+    const [isCopied, setIsCopied] = useState(false);
+    const handleCopy = async () => {
+      try {
+        await navigator.clipboard.writeText(textContent);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
+    };
+
+    const messageContent = (
+      <div className="flex flex-col gap-3">
+        {message.parts.map((part, idx) => {
+          switch (part.type) {
+            case "text":
+              return <TextBlock key={idx} textPart={part} isUser={isUser} />;
+            case "reasoning":
+              return <ReasoningBlock key={idx} text={part.text} />;
+            case "file":
+              return <FileBlock key={idx} filePart={part} />;
+            default:
+              return null;
+          }
+        })}
+      </div>
+    );
+
+    return (
       <div
         className={cn(
-          "relative max-w-[85%] overflow-hidden px-4 py-3 text-sm shadow-sm transition-all md:max-w-2xl lg:max-w-3xl",
-          isUser
-            ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm" // 假设你有 bg-primary 变量，或者改为 bg-blue-600 text-white
-            : "rounded-2xl rounded-tl-sm border border-gray-100 bg-white text-gray-800",
+          "mb-6 flex w-full gap-2",
+          isUser ? "flex-row-reverse" : "justify-start",
         )}
       >
-        {/* 遍历渲染 parts */}
-        <div className="flex flex-col gap-3">
-          {message.parts.map((part, idx) => {
-            switch (part.type) {
-              case "text":
-                return <TextBlock key={idx} textPart={part} isUser={isUser} />;
-              case "reasoning":
-                return <ReasoningBlock key={idx} text={part.text} />;
-              case "file":
-                return <FileBlock key={idx} filePart={part} />;
-              default:
-                return null;
-            }
-          })}
+        {!isUser && (
+          <div>
+            <AgentLogo animating={isLoading && isLatest} />
+          </div>
+        )}
+        <div
+          className={cn(
+            "relative max-w-[85%] px-3 py-2 text-sm shadow-sm transition-all md:max-w-2xl lg:max-w-3xl",
+            isUser
+              ? "bg-primary text-primary-foreground group rounded-2xl rounded-tr-sm"
+              : "rounded-2xl rounded-tl-sm border border-gray-100 bg-white text-gray-800",
+          )}
+        >
+          {/* 内容区域 */}
+          {isUser ? (
+            <CollapsibleText>{messageContent}</CollapsibleText>
+          ) : (
+            messageContent
+          )}
+
+          {/* 底部操作栏 */}
+          {!isLoading && (
+            <div
+              className={cn(
+                "absolute -bottom-7 flex items-center gap-2 text-gray-500 opacity-100 transition-opacity",
+                isUser ? "right-0 opacity-0 group-hover:opacity-100" : "left-0",
+              )}
+            >
+              {/* 复制按钮 (所有消息都有) */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleCopy}
+                    className="flex items-center gap-1 rounded p-1 text-xs transition-colors hover:bg-black/5"
+                  >
+                    {isCopied ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>复制内容</TooltipContent>
+              </Tooltip>
+
+              {/* AI 消息特有：重试 */}
+              {!isUser && onRetry && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => onRetry(message.id)}
+                      className="flex items-center gap-1 rounded p-1 text-xs transition-colors hover:bg-black/5"
+                    >
+                      <RotateCw size={14} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>重新生成</TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* 用户消息特有：删除 */}
+              {isUser && onDelete && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => onDelete(message.id)}
+                      className="flex items-center gap-1 rounded p-1 text-xs transition-colors hover:bg-black/5"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>删除</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
-});
+    );
+  },
+);
 
 ChatMessage.displayName = "ChatMessage";
 export default ChatMessage;

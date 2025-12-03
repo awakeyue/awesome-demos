@@ -5,11 +5,9 @@ export default function EmptyState() {
         <span className="text-3xl">✨</span>
       </div>
       <h2 className="mb-2 text-2xl font-semibold text-gray-900">
-        Start a new conversation
+        开始新的对话
       </h2>
-      <p className="text-gray-600">
-        Ask me anything. I'll do my best to help you out.
-      </p>
+      <p className="text-gray-600">有什么问题尽管问，我会尽力帮助你。</p>
     </div>
   );
 }

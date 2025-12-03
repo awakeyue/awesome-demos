@@ -7,7 +7,7 @@ interface ChatHistoryStoreProps {
   currentChatId: string | null;
   setCurrentChatId: (chatId: string | null) => void;
   setChatHistory: (history: Chatdata[]) => void;
-  setMessages: (chatId: string, messages: Chatdata["messages"]) => void;
+  setChatMessages: (chatId: string, messages: Chatdata["messages"]) => void;
   createNewChat: () => void;
 }
 
@@ -21,7 +21,7 @@ export const useChatHistoryStore = create<ChatHistoryStoreProps>()(
 
       setChatHistory: (historys) => set({ chatHistorys: historys }),
 
-      setMessages: (chatId, messages) =>
+      setChatMessages: (chatId, messages) =>
         set((state) => ({
           chatHistorys: state.chatHistorys.map((history) =>
             history.id === chatId ? { ...history, messages } : history,

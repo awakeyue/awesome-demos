@@ -1,97 +1,184 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import EmptyState from "./empty-state";
 import InputBox from "./input-box";
 import { useChatHistoryStore, useModelStore } from "@/store/chat";
 import { DefaultChatTransport } from "ai";
-import { ArrowDown } from "lucide-react"; // 需要引入 ArrowDown 图标
+import { AlertCircleIcon, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/custom/spinner";
 import { convertFileToUIPart } from "@/lib/utils";
-
-// --- 组件：现代化 Loading 气泡 ---
-const TypingIndicator = () => (
-  <div className="flex w-fit items-center space-x-1 rounded-2xl bg-gray-100 px-4 py-3 text-gray-500 dark:bg-gray-800">
-    <div className="h-2 w-2 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
-    <div className="h-2 w-2 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
-    <div className="h-2 w-2 animate-bounce rounded-full bg-current" />
-  </div>
-);
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function ChatArea() {
-  const { currentChatId, chatHistorys, setMessages, setChatHistory } =
+  const { currentChatId, chatHistorys, setChatMessages, setChatHistory } =
     useChatHistoryStore();
 
-  // 滚动相关的状态
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true); // 是否应该自动跟随到底部
-  const [showScrollButton, setShowScrollButton] = useState(false); // 是否显示“回到底部”按钮
+
+  // [优化 1] 使用 useRef 替换 shouldAutoScroll 的 useState，解决高频更新下的状态冲突
+  const shouldAutoScrollRef = useRef(true);
+
+  // 仅保留 showScrollButton 作为 State，用于 UI 显示
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const { currentModelId } = useModelStore();
 
-  const { messages, status, sendMessage, error, stop } = useChat({
+  const currentChat = useMemo(() => {
+    return chatHistorys.find((chat) => chat.id === currentChatId);
+  }, [chatHistorys, currentChatId]);
+
+  const {
+    messages,
+    status,
+    sendMessage,
+    error,
+    stop,
+    regenerate,
+    setMessages,
+  } = useChat({
     id: currentChatId || undefined,
     messages:
       chatHistorys.find((chat) => chat.id === currentChatId)?.messages || [],
+    experimental_throttle: 50,
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
     onFinish: ({ messages }) => {
       if (currentChatId) {
-        setMessages(currentChatId, messages);
+        setChatMessages(currentChatId, messages);
       }
     },
   });
 
-  // --- 核心逻辑：滚动处理 ---
-
-  const scrollToBottom = useCallback(() => {
-    const container = scrollRef.current;
-    if (container) {
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior: "auto",
+  // --- 处理重试逻辑 ---
+  const handleRetry = useCallback(
+    (messageId: string) => {
+      regenerate({
+        messageId,
+        body: { modelId: currentModelId },
       });
-    }
-  }, []);
+    },
+    [regenerate, currentModelId],
+  );
 
-  // 监听滚动事件，判断用户是否离开了底部
+  // --- 处理删除逻辑 ---
+  const handleDelete = useCallback(
+    (messageId: string) => {
+      const index = messages.findIndex((m) => m.id === messageId);
+      if (index === -1) return;
+
+      const targetMessage = messages[index];
+      const newMessages = [...messages];
+
+      // 如果是用户消息，且下一条是 AI 回复，则连带删除下一条
+      if (
+        targetMessage.role === "user" &&
+        newMessages[index + 1]?.role === "assistant"
+      ) {
+        newMessages.splice(index, 2);
+      } else {
+        // 否则只删除这一条
+        newMessages.splice(index, 1);
+      }
+
+      // 更新 SDK 状态
+      setMessages(newMessages);
+      // 同步更新全局 Store (保持数据一致性)
+      if (currentChatId) {
+        setChatMessages(currentChatId, newMessages);
+      }
+    },
+    [messages, setChatMessages, currentChatId, setMessages],
+  );
+
+  // 独立的滚动到底部函数
+  const scrollToBottom = useCallback(
+    (behavior: "smooth" | "instant" = "instant") => {
+      const container = scrollRef.current;
+      if (container) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: behavior,
+        });
+      }
+    },
+    [],
+  );
+
+  // [优化 2] 滚动处理逻辑：缩小阈值 + 同步更新 Ref
   const handleScroll = () => {
     const container = scrollRef.current;
     if (!container) return;
 
     const { scrollTop, scrollHeight, clientHeight } = container;
-    // 阈值设为 100px，表示如果用户距离底部 100px 以内，我们认为他在“底部”
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+    // 距离底部的距离
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 
-    // 如果用户不在底部，停止自动滚动，并显示回底按钮
-    setShouldAutoScroll(isAtBottom);
+    // 阈值从 100px 缩小到 30px，让用户更容易“逃离”自动滚动
+    const isAtBottom = distanceFromBottom <= 30;
+
+    // 同步更新 Ref 逻辑
+    shouldAutoScrollRef.current = isAtBottom;
+
+    // 更新 UI State
     setShowScrollButton(!isAtBottom);
   };
 
-  // 当消息更新时（生成文本中），根据状态决定是否滚动
+  // [优化 3] 监听滚轮事件：如果用户主动向上滚动，强制打断自动滚动
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.deltaY < 0) {
+      // deltaY < 0 表示向上滚动
+      shouldAutoScrollRef.current = false;
+    }
+  };
+
+  // [优化 4] useEffect 依赖 Ref 进行判断，消除冲突
   useEffect(() => {
-    if (shouldAutoScroll) {
-      // 使用 immediate 效果稍微好一点，或者使用 smooth 配合 requestAnimationFrame
-      // 这里为了防止生成时的剧烈抖动，我们在流式传输时通常推荐平滑度较高的滚动
+    // 只有当 Ref 为 true 时才滚动
+    if (shouldAutoScrollRef.current) {
       const container = scrollRef.current;
       if (container) {
         requestAnimationFrame(() => {
-          container.scrollTo({
-            top: container.scrollHeight,
-            behavior: "instant", // Streaming 时推荐 instant，auto 会在快速输出时产生视觉抖动
-          });
+          // 自动跟随模式下使用 instant
+          scrollToBottom("instant");
         });
       }
     }
-  }, [messages, shouldAutoScroll]);
+  }, [messages, scrollToBottom]);
 
-  // 用户发送消息时，强制锁定到底部
+  const setChatTitle = async (text: string) => {
+    const res = await fetch("/api/chat/title", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text,
+      }),
+    });
+    if (!res.ok) {
+      throw new Error("Failed to generate title");
+    }
+
+    const data = await res.json();
+    if (data.title) {
+      setChatHistory(
+        chatHistorys.map((chat) => {
+          if (chat.id === currentChatId) {
+            return { ...chat, title: data.title };
+          }
+          return chat;
+        }),
+      );
+    }
+  };
+
   const handleSendMessage = async (inputValue: string, attachments: File[]) => {
-    setShouldAutoScroll(true); // 强制开启自动滚动
+    // 发送新消息时，强制开启自动滚动
+    shouldAutoScrollRef.current = true;
     setShowScrollButton(false);
 
     if (currentChatId) {
@@ -107,73 +194,75 @@ export default function ChatArea() {
           body: { modelId: currentModelId },
         },
       );
-
-      // 这里的逻辑保持不变
-      setChatHistory(
-        chatHistorys.map((chat) => {
-          if (chat.id === currentChatId && chat.title === "") {
-            return { ...chat, title: inputValue, modelId: currentModelId };
-          }
-          return chat;
-        }),
-      );
+      if (currentChat?.title === "") {
+        setChatTitle(inputValue);
+      }
     }
   };
 
   return (
-    <div className="relative flex flex-1 flex-col p-2">
-      {/* Chat Messages Area */}
+    <div className="relative mx-auto flex max-w-4xl flex-1 flex-col p-2 pt-4">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto scroll-smooth"
-        style={{ scrollbarGutter: "stable" }}
+        onWheel={handleWheel} // 绑定滚轮事件
+        className="scrollbar-hide flex-1 overflow-y-auto scroll-smooth"
       >
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <EmptyState />
           </div>
         ) : (
-          <div className="mx-auto min-h-8 max-w-4xl space-y-6 pb-4">
-            {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
+          <div className="min-h-8 space-y-6 pb-4">
+            {messages.map((message, index) => (
+              <ChatMessage
+                key={message.id}
+                message={message}
+                onRetry={handleRetry}
+                onDelete={handleDelete}
+                isLoading={status === "streaming"}
+                isLatest={index === messages.length - 1}
+              />
             ))}
-
-            {/* 现代化的 Loading 状态 */}
-            {status === "streaming" && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 flex justify-start duration-300">
-                <TypingIndicator />
-              </div>
-            )}
-
-            {/* 这个空 div 用于辅助布局，确保最后的内容不贴底 */}
             <div className="h-4" />
           </div>
         )}
       </div>
 
-      {/* 悬浮的回到底部按钮 */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircleIcon />
+          <AlertTitle>错误</AlertTitle>
+          <AlertDescription>
+            <p>{error.message || "未知错误"}</p>
+            <Button size={"sm"} variant="outline" onClick={() => regenerate()}>
+              重试
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {showScrollButton && (
         <div className="absolute right-0 left-0" style={{ bottom: "180px" }}>
-          {/* 调整定位容器 */}
           <div className="mx-auto max-w-4xl text-center">
             <Button
               onClick={() => {
-                scrollToBottom();
-                setShouldAutoScroll(true);
+                // 点击按钮时，使用 smooth 滚动，并重新开启自动锁定
+                scrollToBottom("smooth");
+                shouldAutoScrollRef.current = true;
+                setShowScrollButton(false);
               }}
               aria-label="Scroll to bottom"
               variant="outline"
               className="rounded-full shadow-md"
             >
               <ArrowDown />
-              {status === "streaming" ? "生成中，查看最新" : "查看最新"}
+              {status === "streaming" ? "生成中" : ""}
             </Button>
           </div>
         </div>
       )}
 
-      {/* Input Box */}
       <InputBox onSubmit={handleSendMessage} status={status} stop={stop} />
     </div>
   );
