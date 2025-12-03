@@ -67,8 +67,15 @@ export const useModelStore = create<ModelStoreProps>()(
       currentModelId: "ep-20251124145531-b7dkr",
       modelList: [
         {
+          id: "ep-20251203173341-sztlm",
+          name: "Kimi-K2",
+          description: "Kimi-K2",
+          apiKey: process.env.AI_GATEWAY_API_KEY as string,
+          baseURL: "https://ark.cn-beijing.volces.com/api/v3",
+        },
+        {
           id: "ep-20251124145531-b7dkr",
-          name: "Doubao-Seed-1.6",
+          name: "Doubao-Seed-1.6(深度思考)",
           description: "豆包大模型",
           apiKey: process.env.AI_GATEWAY_API_KEY as string,
           baseURL: "https://ark.cn-beijing.volces.com/api/v3",
@@ -76,7 +83,7 @@ export const useModelStore = create<ModelStoreProps>()(
         {
           id: "ep-20251120155412-jmc8q",
           name: "Doubao-lite-32k",
-          description: "豆包大模型2好好",
+          description: "豆包大模型",
           apiKey: process.env.AI_GATEWAY_API_KEY as string,
           baseURL: "https://ark.cn-beijing.volces.com/api/v3",
         },

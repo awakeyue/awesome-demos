@@ -269,7 +269,7 @@ const TextBlock = memo(
     }
 
     return (
-      <div className="markdown-body">
+      <div className="markdown-body leading-6">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={MarkdownComponents}

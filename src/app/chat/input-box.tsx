@@ -195,7 +195,7 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
                   </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[200px]">
+              <DropdownMenuContent align="start" className="w-60">
                 {modelList.map((model) => (
                   <DropdownMenuItem
                     key={model.id}
@@ -207,7 +207,7 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
                         : "",
                     )}
                   >
-                    <span className="font-medium">{model.name}</span>
+                    <span className="text-sm">{model.name}</span>
                     {/* <span className="text-muted-foreground text-xs">
                         {model.description}
                       </span> */}

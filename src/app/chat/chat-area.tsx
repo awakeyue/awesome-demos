@@ -235,7 +235,11 @@ export default function ChatArea() {
           <AlertTitle>错误</AlertTitle>
           <AlertDescription>
             <p>{error.message || "未知错误"}</p>
-            <Button size={"sm"} variant="outline" onClick={() => regenerate()}>
+            <Button
+              size={"sm"}
+              variant="outline"
+              onClick={() => regenerate({ body: { modelId: currentModelId } })}
+            >
               重试
             </Button>
           </AlertDescription>
