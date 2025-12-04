@@ -201,7 +201,7 @@ export default function ChatArea() {
   };
 
   return (
-    <div className="relative mx-auto flex max-w-4xl flex-1 flex-col p-2 pt-4">
+    <div className="relative mx-auto flex max-w-5xl flex-1 flex-col p-2 pt-4">
       <div
         ref={scrollRef}
         onScroll={handleScroll}

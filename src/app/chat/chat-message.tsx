@@ -92,10 +92,10 @@ const ChatMessage = memo(
         )}
         <div
           className={cn(
-            "relative max-w-[85%] px-3 py-2 text-sm shadow-sm transition-all md:max-w-2xl lg:max-w-3xl",
+            "relative max-w-[85%] px-3 py-2 text-sm shadow-sm transition-all md:max-w-3xl lg:max-w-4xl",
             isUser
               ? "bg-primary text-primary-foreground group rounded-2xl rounded-tr-sm"
-              : "rounded-2xl rounded-tl-sm border border-gray-100 bg-white text-gray-800",
+              : "rounded-2xl rounded-tl-sm border border-gray-100 bg-white text-gray-800 md:min-w-xl lg:min-w-3xl",
           )}
         >
           {/* 内容区域 */}
