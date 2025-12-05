@@ -95,7 +95,7 @@ const ChatMessage = memo(
             "relative max-w-[85%] px-3 py-2 text-sm shadow-sm transition-all md:max-w-3xl lg:max-w-4xl",
             isUser
               ? "bg-primary text-primary-foreground group rounded-2xl rounded-tr-sm"
-              : "rounded-2xl rounded-tl-sm border border-gray-100 bg-white text-gray-800 md:min-w-xl lg:min-w-3xl",
+              : "rounded-2xl rounded-tl-sm border border-gray-100 bg-white text-gray-800 md:min-w-xl lg:min-w-3xl dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100",
           )}
         >
           {/* 内容区域 */}
@@ -109,7 +109,7 @@ const ChatMessage = memo(
           {!isLoading && (
             <div
               className={cn(
-                "absolute -bottom-7 flex items-center gap-2 text-gray-500 opacity-100 transition-opacity",
+                "absolute -bottom-7 flex items-center gap-2 text-gray-500 opacity-100 transition-opacity dark:text-gray-300",
                 isUser ? "right-0 opacity-0 group-hover:opacity-100" : "left-0",
               )}
             >
@@ -403,7 +403,7 @@ const CodeBlock = memo(
     };
 
     return (
-      <div className="group relative my-4 overflow-hidden rounded-lg border border-gray-200 bg-[#1e1e1e]">
+      <div className="group relative my-4 overflow-hidden rounded-lg border border-gray-200 bg-[#1e1e1e] dark:border-gray-700">
         {/* 代码块头部：显示语言和复制按钮 */}
         <div className="flex items-center justify-between bg-[#2d2d2d] px-4 py-2 text-xs text-gray-400">
           <div className="flex items-center gap-2">

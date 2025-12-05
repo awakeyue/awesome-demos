@@ -4,7 +4,7 @@ export const AgentLogo = ({ animating }: { animating?: boolean }) => {
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-xl bg-gray-200",
+        "flex items-center justify-center rounded-xl bg-gray-200 dark:bg-gray-700",
         animating ? "animate-bounce" : "",
       )}
     >
