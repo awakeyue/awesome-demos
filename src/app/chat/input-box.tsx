@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useChatHistoryStore, useModelStore } from "@/store/chat";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 // import { ModelListConfig } from "./model-list-config";
 
 interface InputBoxProps {
@@ -105,6 +106,9 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
     const droppedFiles = Array.from(e.dataTransfer.files).filter((file) =>
       file.type.startsWith("image/"),
     );
+    if (droppedFiles.length < e.dataTransfer.files.length) {
+      toast.warning("仅支持接收图片文件");
+    }
 
     if (droppedFiles.length > 0) {
       setFiles((prev) => [...prev, ...droppedFiles]);
@@ -173,7 +177,7 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
         <div className="flex items-center justify-between gap-2">
           <div className="flex gap-2">
             <Button
-              title="Add file or image"
+              title="请上传图片，支持拖拽粘贴"
               size="sm"
               variant={"ghost"}
               onClick={() => fileInputRef.current?.click()} // 点击触发文件选择

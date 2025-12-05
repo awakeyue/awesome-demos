@@ -64,7 +64,7 @@ interface ModelStoreProps {
 export const useModelStore = create<ModelStoreProps>()(
   persist(
     (set) => ({
-      currentModelId: "ep-20251124145531-b7dkr",
+      currentModelId: "ep-20251203173341-sztlm",
       modelList: [
         {
           id: "ep-20251203173341-sztlm",
@@ -95,7 +95,7 @@ export const useModelStore = create<ModelStoreProps>()(
       name: "model-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        currentModelId: state.modelList,
+        currentModelId: state.currentModelId,
       }),
     },
   ),
