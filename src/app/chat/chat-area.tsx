@@ -168,7 +168,7 @@ export default function ChatArea() {
       setChatHistory(
         chatHistorys.map((chat) => {
           if (chat.id === currentChatId) {
-            return { ...chat, title: data.title };
+            return { ...chat, title: data.title, modelId: currentModelId };
           }
           return chat;
         }),

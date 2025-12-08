@@ -35,7 +35,7 @@ export const useChatHistoryStore = create<ChatHistoryStoreProps>()(
             id: chatId,
             title: "",
             timestamp: Date.now(),
-            modelId: "gpt-3.5-turbo",
+            modelId: "ep-20251203173341-sztlm",
             messages: [],
           };
           return {
