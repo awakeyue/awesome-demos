@@ -1,18 +1,19 @@
-"use client"
+/* eslint-disable @next/next/no-img-element */
+"use client";
 
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import type { CardTheme } from "@/lib/card-themes"
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import type { CardTheme } from "./card-themes";
 
 interface MarkdownPreviewProps {
-  content: string
-  theme: CardTheme
+  content: string;
+  theme: CardTheme;
 }
 
 export function MarkdownPreview({ content, theme }: MarkdownPreviewProps) {
   return (
     <div
-      className="markdown-preview p-8 min-h-full"
+      className="markdown-preview min-h-full p-8"
       style={{
         background: theme.background,
         color: theme.foreground,
@@ -26,15 +27,15 @@ export function MarkdownPreview({ content, theme }: MarkdownPreviewProps) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          code({ inline, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || "")
-            const language = match ? match[1] : ""
+          code({ inline, className, children, ...props }: any) {
+            const match = /language-(\w+)/.exec(className || "");
+            const language = match ? match[1] : "";
 
             return !inline && match ? (
               <div className="relative my-4">
                 {language && (
                   <span
-                    className="absolute top-0 right-0 px-2 py-1 text-xs rounded-bl-md font-mono"
+                    className="absolute top-0 right-0 rounded-bl-md px-2 py-1 font-mono text-xs"
                     style={{
                       backgroundColor: theme.accent,
                       color: theme.background,
@@ -45,7 +46,7 @@ export function MarkdownPreview({ content, theme }: MarkdownPreviewProps) {
                   </span>
                 )}
                 <pre
-                  className="overflow-auto rounded-lg p-4 text-sm font-mono"
+                  className="overflow-auto rounded-lg p-4 font-mono text-sm"
                   style={{
                     backgroundColor: theme.codeBackground,
                     color: theme.codeForeground,
@@ -68,41 +69,59 @@ export function MarkdownPreview({ content, theme }: MarkdownPreviewProps) {
               >
                 {children}
               </code>
-            )
+            );
           },
           pre({ children }) {
-            return <>{children}</>
+            return <>{children}</>;
           },
           h1: ({ children }) => (
             <h1
-              className="text-3xl font-bold mb-4 pb-2"
-              style={{ color: theme.foreground, borderBottom: `2px solid ${theme.accent}` }}
+              className="mb-4 pb-2 text-3xl font-bold"
+              style={{
+                color: theme.foreground,
+                borderBottom: `2px solid ${theme.accent}`,
+              }}
             >
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-2xl font-bold mt-6 mb-3" style={{ color: theme.foreground }}>
+            <h2
+              className="mt-6 mb-3 text-2xl font-bold"
+              style={{ color: theme.foreground }}
+            >
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-xl font-semibold mt-4 mb-2" style={{ color: theme.foreground }}>
+            <h3
+              className="mt-4 mb-2 text-xl font-semibold"
+              style={{ color: theme.foreground }}
+            >
               {children}
             </h3>
           ),
           p: ({ children }) => (
-            <p className="my-3 leading-relaxed" style={{ color: theme.foreground }}>
+            <p
+              className="my-3 leading-relaxed"
+              style={{ color: theme.foreground }}
+            >
               {children}
             </p>
           ),
           ul: ({ children }) => (
-            <ul className="list-disc list-inside my-3 space-y-1" style={{ color: theme.foreground }}>
+            <ul
+              className="my-3 list-inside list-disc space-y-1"
+              style={{ color: theme.foreground }}
+            >
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal list-inside my-3 space-y-1" style={{ color: theme.foreground }}>
+            <ol
+              className="my-3 list-inside list-decimal space-y-1"
+              style={{ color: theme.foreground }}
+            >
               {children}
             </ol>
           ),
@@ -110,7 +129,7 @@ export function MarkdownPreview({ content, theme }: MarkdownPreviewProps) {
           a: ({ children, href }) => (
             <a
               href={href}
-              className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+              className="underline underline-offset-2 transition-opacity hover:opacity-80"
               style={{ color: theme.accent }}
               target="_blank"
               rel="noopener noreferrer"
@@ -120,16 +139,25 @@ export function MarkdownPreview({ content, theme }: MarkdownPreviewProps) {
           ),
           blockquote: ({ children }) => (
             <blockquote
-              className="border-l-4 pl-4 my-4 italic"
-              style={{ borderLeftColor: theme.accent, color: theme.foreground, opacity: 0.85 }}
+              className="my-4 border-l-4 pl-4 italic"
+              style={{
+                borderLeftColor: theme.accent,
+                color: theme.foreground,
+                opacity: 0.85,
+              }}
             >
               {children}
             </blockquote>
           ),
-          hr: () => <hr className="my-6" style={{ borderColor: theme.border }} />,
+          hr: () => (
+            <hr className="my-6" style={{ borderColor: theme.border }} />
+          ),
           table: ({ children }) => (
-            <div className="overflow-auto my-4">
-              <table className="w-full border-collapse" style={{ borderColor: theme.border }}>
+            <div className="my-4 overflow-auto">
+              <table
+                className="w-full border-collapse"
+                style={{ borderColor: theme.border }}
+              >
                 {children}
               </table>
             </div>
@@ -137,18 +165,28 @@ export function MarkdownPreview({ content, theme }: MarkdownPreviewProps) {
           th: ({ children }) => (
             <th
               className="border px-4 py-2 text-left font-semibold"
-              style={{ backgroundColor: theme.codeBackground, borderColor: theme.border }}
+              style={{
+                backgroundColor: theme.codeBackground,
+                borderColor: theme.border,
+              }}
             >
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="border px-4 py-2" style={{ borderColor: theme.border }}>
+            <td
+              className="border px-4 py-2"
+              style={{ borderColor: theme.border }}
+            >
               {children}
             </td>
           ),
           img: ({ src, alt }) => (
-            <img src={src || "/placeholder.svg"} alt={alt} className="max-w-full h-auto rounded-lg my-4" />
+            <img
+              src={src || "/placeholder.svg"}
+              alt={alt}
+              className="my-4 h-auto max-w-full rounded-lg"
+            />
           ),
           strong: ({ children }) => (
             <strong className="font-bold" style={{ color: theme.foreground }}>
@@ -161,5 +199,5 @@ export function MarkdownPreview({ content, theme }: MarkdownPreviewProps) {
         {content}
       </ReactMarkdown>
     </div>
-  )
+  );
 }
