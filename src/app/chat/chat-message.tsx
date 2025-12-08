@@ -127,7 +127,7 @@ const ChatMessage = memo(
               </Tooltip>
 
               {/* AI 消息特有：重试 */}
-              {!isUser && onRetry && (
+              {(!isUser || (isUser && isLatest)) && onRetry && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
