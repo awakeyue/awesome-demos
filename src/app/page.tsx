@@ -44,16 +44,16 @@ export default function Home() {
     {
       id: 3,
       title: "markdown 转图片",
-      description: "ai回复太长？可以将markdown转为图片",
+      description: "可以将markdown转为图片，可用于复制ai回复，生成图片",
       link: "/markdown_to_img",
       tags: ["markdown", "html-to-image"],
     },
     {
       id: 4,
-      title: "Next.js 服务端组件",
-      description: "使用 Server Components 和异步渲染构建应用",
-      link: "#",
-      tags: ["Next.js", "后端"],
+      title: "操作数据库",
+      description: "创建一个用户管理页面，实现数据库的增删查改",
+      link: "/user_manage",
+      tags: ["prisma", "数据库"],
     },
   ];
 
