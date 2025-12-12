@@ -2,6 +2,8 @@ import { getUsers, getUserStats } from "@/actions/user-manage";
 import { Users } from "lucide-react";
 import { UsersPageClient } from "./users-page-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function UsersPage() {
   const [users, stats] = await Promise.all([getUsers(), getUserStats()]);
 
