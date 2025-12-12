@@ -9,9 +9,16 @@ import prisma from "@/lib/prisma";
  * 获取所有用户
  */
 export async function getUsers(): Promise<User[]> {
-  return await prisma.user.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    return users;
+  } catch (error) {
+    console.error("Database query failed:", error);
+    // 返回空数组而不是抛出错误，或者根据业务需求处理
+    return [];
+  }
 }
 
 /**
