@@ -28,7 +28,7 @@ import {
   UserPlus,
   Loader2,
 } from "lucide-react";
-import { format } from "date-fns";
+// import { format } from "date-fns";
 
 interface UserTableProps {
   users: User[];
@@ -141,10 +141,12 @@ export function UserTable({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {format(new Date(user.createdAt), "yyyy-MM-dd HH:mm")}
+                    {user.createdAt.toDateString()}
+                    {/* {format(new Date(user.createdAt), "yyyy-MM-dd HH:mm")} */}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {format(new Date(user.updatedAt), "yyyy-MM-dd HH:mm")}
+                    {user.updatedAt.toDateString()}
+                    {/* {format(new Date(user.updatedAt), "yyyy-MM-dd HH:mm")} */}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
