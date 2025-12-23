@@ -29,31 +29,38 @@ export default function Home() {
   const demos = [
     {
       id: 1,
-      title: "视频抽帧",
-      description: "使用多种方式，实现视频抽帧功能",
-      link: "/extract_frame",
-      tags: ["JS", "视频抽帧"],
-    },
-    {
-      id: 2,
       title: "AI 聊天",
       description: "使用多种模型，于AI聊天",
       link: "/chat",
       tags: ["AI", "SSE"],
     },
     {
-      id: 3,
-      title: "markdown 转图片",
-      description: "可以将markdown转为图片，可用于复制ai回复，生成图片",
-      link: "/markdown_to_img",
-      tags: ["markdown", "html-to-image"],
-    },
-    {
-      id: 4,
+      id: 2,
       title: "操作数据库",
       description: "创建一个用户管理页面，实现数据库的增删查改",
       link: "/user_manage",
       tags: ["prisma", "数据库"],
+    },
+    {
+      id: 3,
+      title: "视频抽帧",
+      description: "使用多种方式，实现视频抽帧功能",
+      link: "/extract_frame",
+      tags: ["JS", "视频抽帧"],
+    },
+    {
+      id: 4,
+      title: "3d 炸弹超人",
+      description: "创建一个3d炸弹超人游戏",
+      link: "/bomberman_game",
+      tags: ["three.js", "游戏"],
+    },
+    {
+      id: 5,
+      title: "markdown 转图片",
+      description: "可以将markdown转为图片，可用于复制ai回复，生成图片",
+      link: "/markdown_to_img",
+      tags: ["markdown", "html-to-image"],
     },
   ];
 
