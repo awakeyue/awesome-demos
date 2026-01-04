@@ -6,6 +6,8 @@ export interface Chatdata {
   timestamp: number;
   modelId: string;
   messages: UIMessage[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface ModelInfo {
@@ -14,4 +16,12 @@ export interface ModelInfo {
   description?: string;
   apiKey: string;
   baseURL: string;
+}
+
+export interface DbMessage {
+  id: string;
+  role: string;
+  content: string;
+  parts: any;
+  createdAt: Date;
 }

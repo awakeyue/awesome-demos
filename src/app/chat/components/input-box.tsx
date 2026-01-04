@@ -2,68 +2,63 @@
 
 import { Button } from "@/components/ui/button";
 import { ChatStatus } from "ai";
-import { ArrowUp, CircleStop, Plus, X } from "lucide-react"; // 引入 X 图标用于删除图片
+import { ArrowUp, CircleStop, Plus, X } from "lucide-react";
 import { useRef, useState, useCallback, memo, useEffect } from "react";
-import Image from "next/image"; // 使用 Next.js 的 Image 组件（可选，也可以用普通 img）
+import Image from "next/image";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-// 新增导入
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useChatHistoryStore, useModelStore } from "@/store/chat";
+import { useModelStore } from "@/store/chat";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-// import { ModelListConfig } from "./model-list-config";
 
 interface InputBoxProps {
   onSubmit: (text: string, attachments: File[]) => void;
   status: ChatStatus;
   stop?: () => void;
+  currentChatId?: string | null;
 }
 
-export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
+export default function InputBox({
+  onSubmit,
+  status,
+  stop,
+  currentChatId,
+}: InputBoxProps) {
   const [input, setInput] = useState("");
-  const [files, setFiles] = useState<File[]>([]); // 存储图片文件
-  const [isDragging, setIsDragging] = useState(false); // 拖拽状态
-  const fileInputRef = useRef<HTMLInputElement>(null); // 隐藏的文件输入框引用
+  const [files, setFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // 新增模型相关状态
   const { currentModelId, modelList, setCurrentModelId } = useModelStore();
   const currentModel =
     modelList.find((model) => model.id === currentModelId) || modelList[0];
 
   const disabled = status !== "ready";
 
-  const { currentChatId } = useChatHistoryStore();
-
   useEffect(() => {
-    // 在组件挂载时以及 currentChatId 变化时都尝试聚焦
     if (inputRef.current) {
-      // 使用 requestAnimationFrame 确保 DOM 已经准备就绪
       requestAnimationFrame(() => {
         inputRef.current?.focus();
       });
     }
   }, [currentChatId]);
 
-  // 处理图片选择（点击加号）
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
     }
-    // 清空 value 防止重复选择同一文件不触发 onChange
-    // e.target.value = "";
   };
 
-  // 处理粘贴事件
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const items = e.clipboardData.items;
     const pastedFiles: File[] = [];
@@ -72,7 +67,7 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
       if (item.type.indexOf("image") === 0) {
         const file = item.getAsFile();
         if (file) pastedFiles.push(file);
-        e.preventDefault(); // 如果是图片，阻止默认粘贴（避免文件名粘贴到文本框）
+        e.preventDefault();
       }
     }
 
@@ -81,7 +76,6 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
     }
   };
 
-  // 处理拖拽进入
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -90,14 +84,12 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
     }
   }, []);
 
-  // 处理拖拽离开
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   }, []);
 
-  // 处理拖拽放下
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -115,19 +107,17 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
     }
   }, []);
 
-  // 删除已选图片
   const removeFile = useCallback((indexToRemove: number) => {
     setFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
   }, []);
 
   const handleSend = () => {
-    // 如果既没有文字也没有图片，则不发送
     if (!input.trim() && files.length === 0) return;
 
     const message = input.trim();
-    onSubmit(message, files); // 将图片传递给父组件
+    onSubmit(message, files);
     setInput("");
-    setFiles([]); // 发送后清空图片
+    setFiles([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -140,7 +130,6 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
   return (
     <div className="bg-background py-4">
       <div
-        // 添加拖拽事件监听
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -148,7 +137,6 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
           isDragging ? "border-primary ring-primary ring-2" : ""
         }`}
       >
-        {/* 图片预览区域 */}
         <FilesPreview files={files} removeFile={removeFile} />
 
         <textarea
@@ -156,22 +144,21 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          onPaste={handlePaste} // 绑定粘贴事件
+          onPaste={handlePaste}
           placeholder={
             files.length > 0 ? "添加描述..." : "请输入内容，按 Enter 发送..."
           }
-          rows={files.length > 0 ? 1 : 2} //如果有图片，文本框可以稍微变小一点
+          rows={files.length > 0 ? 1 : 2}
           className="text-foreground placeholder:text-muted-foreground max-h-32 w-full resize-none bg-transparent font-sans focus:outline-none"
         />
 
-        {/* 隐藏的文件输入框 */}
         <input
           type="file"
           ref={fileInputRef}
           onChange={handleFileSelect}
           className="hidden"
-          accept="image/*" // 限制只能选图片
-          multiple // 支持多选
+          accept="image/*"
+          multiple
         />
 
         <div className="flex items-center justify-between gap-2">
@@ -180,12 +167,11 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
               title="请上传图片，支持拖拽粘贴"
               size="sm"
               variant={"ghost"}
-              onClick={() => fileInputRef.current?.click()} // 点击触发文件选择
+              onClick={() => fileInputRef.current?.click()}
             >
               <Plus className="opacity-80" />
             </Button>
 
-            {/* 模型选择 使用shadcn dropdown-menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -212,18 +198,10 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
                     )}
                   >
                     <span className="text-sm">{model.name}</span>
-                    {/* <span className="text-muted-foreground text-xs">
-                        {model.description}
-                      </span> */}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* <Button title="Advanced settings" size={"sm"} variant={"ghost"}>
-                <Settings2 className="opacity-80" />
-              </Button> */}
-            {/* <ModelListConfig /> */}
           </div>
 
           {status === "streaming" ? (
@@ -234,7 +212,6 @@ export default function InputBox({ onSubmit, status, stop }: InputBoxProps) {
           ) : (
             <Button
               onClick={handleSend}
-              // 只要有文字 OR 有文件，就可以发送
               disabled={disabled || (!input.trim() && files.length === 0)}
               size="sm"
               className="disabled:bg-white-400 rounded-lg px-3 py-2 disabled:text-white"

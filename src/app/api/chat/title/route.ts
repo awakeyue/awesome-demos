@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   const result = await generateText({
     model: model(modelInfo.id),
-    prompt: `你是一个标题生成器。请根据用户的提问，生成一个简洁、不超过20个字的中文聊天标题。只输出标题，不要任何其他内容。用户的提问是：${text}`,
+    prompt: `你是一个聊天title生成器。请根据用户的提问，考虑ai会怎样回复，然后总结出一个简洁、不超过20个字的中文聊天标题。只输出标题，不要任何其他内容。用户的提问是：${text}`,
     maxOutputTokens: 32,
     temperature: 0.3,
   });
