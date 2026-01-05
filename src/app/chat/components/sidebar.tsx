@@ -9,6 +9,7 @@ import {
   MessageSquareText,
   LogOut,
   User,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,6 +28,7 @@ import { signOut } from "@/actions/auth";
 import { useRouter, usePathname } from "next/navigation";
 import useSWR from "swr";
 import { useUIStore } from "../store/ui-store";
+import { useTransition } from "react";
 
 interface UserInfo {
   id: number;
@@ -40,9 +42,17 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ user }: SidebarProps) {
-  const { isSidebarCollapsed, toggleSidebar } = useUIStore();
+  const {
+    isSidebarCollapsed,
+    toggleSidebar,
+    isNavigating,
+    navigatingToChatId,
+    setNavigating,
+  } = useUIStore();
   const router = useRouter();
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+
   // Extract chatId from pathname like /chat/xxx
   const currentChatId = pathname.startsWith("/chat/")
     ? pathname.slice(6)
@@ -58,17 +68,43 @@ export default function Sidebar({ user }: SidebarProps) {
   });
 
   const handleCreateChat = () => {
+    // Immediate UI feedback - set navigating state
+    setNavigating(true, null);
+
     if (modelList.length > 0) {
       setCurrentModelId(modelList[0].id);
     }
     triggerReset();
-    router.push("/chat");
+
+    // Use startTransition for non-blocking navigation
+    startTransition(() => {
+      router.push("/chat");
+    });
+
+    // Clear navigating state after a short delay (allow transition to complete)
+    setTimeout(() => {
+      setNavigating(false);
+    }, 100);
   };
 
   const handleSelectChat = (chatId: string, modelId: string) => {
+    // Skip if already on this chat or navigating to it
+    if (chatId === currentChatId || navigatingToChatId === chatId) {
+      return;
+    }
+
+    // Immediate UI feedback
+    setNavigating(true, chatId);
     setCurrentModelId(modelId);
-    router.push(`/chat/${chatId}`);
+
+    // Use startTransition for non-blocking navigation
+    startTransition(() => {
+      router.push(`/chat/${chatId}`);
+    });
   };
+
+  // Clear navigating state when pathname changes (navigation completed)
+  // This is handled by useEffect in parent or the page component
 
   const handleDeleteChatHistory = async (chatId: string) => {
     await deleteChat(chatId);
@@ -88,6 +124,9 @@ export default function Sidebar({ user }: SidebarProps) {
     }
     return email.charAt(0).toUpperCase();
   };
+
+  // Check if currently loading (either transitioning or navigating)
+  const isLoading = isPending || isNavigating;
 
   return (
     <div
@@ -132,13 +171,18 @@ export default function Sidebar({ user }: SidebarProps) {
           onClick={handleCreateChat}
           variant="outline"
           size="sm"
+          disabled={isLoading && navigatingToChatId === null}
           className={cn(
             "w-full gap-2",
             isSidebarCollapsed ? "justify-center px-0" : "justify-start",
           )}
           title={isSidebarCollapsed ? "新建聊天" : ""}
         >
-          <Plus size={18} />
+          {isLoading && navigatingToChatId === null ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <Plus size={18} />
+          )}
           {!isSidebarCollapsed && "新建聊天"}
         </Button>
       </div>
@@ -156,57 +200,73 @@ export default function Sidebar({ user }: SidebarProps) {
           <div
             className={cn("space-y-1", isSidebarCollapsed ? "px-2" : "px-2")}
           >
-            {chatHistorys?.map((chatData) => (
-              <div
-                key={chatData.id}
-                className={cn(
-                  "group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 transition-all",
-                  currentChatId === chatData.id
-                    ? "bg-sidebar-primary/20 text-sidebar-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent",
-                )}
-                title={chatData.title}
-                onClick={() => handleSelectChat(chatData.id, chatData.modelId)}
-              >
+            {chatHistorys?.map((chatData) => {
+              const isLoadingThisChat = navigatingToChatId === chatData.id;
+              const isActive = currentChatId === chatData.id;
+
+              return (
                 <div
+                  key={chatData.id}
                   className={cn(
-                    "truncate text-left text-sm",
-                    isSidebarCollapsed ? "hidden" : "w-0 flex-1",
+                    "group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 transition-all",
+                    isActive
+                      ? "bg-sidebar-primary/20 text-sidebar-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent",
+                    isLoadingThisChat && "opacity-70",
                   )}
+                  title={chatData.title}
+                  onClick={() =>
+                    handleSelectChat(chatData.id, chatData.modelId)
+                  }
                 >
-                  {chatData.title || "新对话"}
-                </div>
-                {isSidebarCollapsed && (
+                  {/* Loading indicator for navigating chat */}
+                  {isLoadingThisChat && !isSidebarCollapsed && (
+                    <Loader2 size={14} className="shrink-0 animate-spin" />
+                  )}
                   <div
-                    className="flex w-full items-center justify-center rounded text-sm"
-                    title={chatData.title}
+                    className={cn(
+                      "truncate text-left text-sm",
+                      isSidebarCollapsed ? "hidden" : "w-0 flex-1",
+                    )}
                   >
-                    <MessageSquareText size={16} />
+                    {chatData.title || "新对话"}
                   </div>
-                )}
-                {!isSidebarCollapsed && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="opacity-0 transition-opacity group-hover:opacity-100">
-                        <MoreVertical size={16} />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteChatHistory(chatData.id);
-                        }}
-                        className="flex cursor-pointer items-center gap-2 text-red-600"
-                      >
-                        <Trash2 size={16} />
-                        删除
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-            ))}
+                  {isSidebarCollapsed && (
+                    <div
+                      className="flex w-full items-center justify-center rounded text-sm"
+                      title={chatData.title}
+                    >
+                      {isLoadingThisChat ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <MessageSquareText size={16} />
+                      )}
+                    </div>
+                  )}
+                  {!isSidebarCollapsed && !isLoadingThisChat && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="opacity-0 transition-opacity group-hover:opacity-100">
+                          <MoreVertical size={16} />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChatHistory(chatData.id);
+                          }}
+                          className="flex cursor-pointer items-center gap-2 text-red-600"
+                        >
+                          <Trash2 size={16} />
+                          删除
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </ScrollArea>
       </div>

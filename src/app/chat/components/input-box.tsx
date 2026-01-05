@@ -25,6 +25,7 @@ interface InputBoxProps {
   status: ChatStatus;
   stop?: () => void;
   currentChatId?: string | null;
+  disabled?: boolean;
 }
 
 export default function InputBox({
@@ -32,6 +33,7 @@ export default function InputBox({
   status,
   stop,
   currentChatId,
+  disabled: externalDisabled = false,
 }: InputBoxProps) {
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -43,7 +45,7 @@ export default function InputBox({
   const currentModel =
     modelList.find((model) => model.id === currentModelId) || modelList[0];
 
-  const disabled = status !== "ready";
+  const disabled = status !== "ready" || externalDisabled;
 
   useEffect(() => {
     if (inputRef.current) {
@@ -145,11 +147,19 @@ export default function InputBox({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
+          disabled={externalDisabled}
           placeholder={
-            files.length > 0 ? "添加描述..." : "请输入内容，按 Enter 发送..."
+            externalDisabled
+              ? "加载中..."
+              : files.length > 0
+                ? "添加描述..."
+                : "请输入内容，按 Enter 发送..."
           }
           rows={files.length > 0 ? 1 : 2}
-          className="text-foreground placeholder:text-muted-foreground max-h-32 w-full resize-none bg-transparent font-sans focus:outline-none"
+          className={cn(
+            "text-foreground placeholder:text-muted-foreground max-h-32 w-full resize-none bg-transparent font-sans focus:outline-none",
+            externalDisabled && "cursor-not-allowed opacity-50",
+          )}
         />
 
         <input

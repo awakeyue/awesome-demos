@@ -15,10 +15,33 @@ import { saveChatMessages, createChat, updateChatTitle } from "@/actions/chat";
 import { useSWRConfig } from "swr";
 import type { UIMessage } from "ai";
 import { nanoid } from "nanoid";
+import { useUIStore } from "../store/ui-store";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ChatAreaProps {
   initialMessages?: UIMessage[];
   chatId?: string | null;
+}
+
+// Message skeleton for loading state
+function MessageSkeleton() {
+  return (
+    <div className="space-y-6 p-4">
+      {/* User message skeleton */}
+      <div className="flex w-full flex-row-reverse gap-2">
+        <div className="flex w-full max-w-[70%] flex-row-reverse space-y-2">
+          <Skeleton className="h-10 w-[40%] rounded-2xl" />
+        </div>
+      </div>
+      <div className="flex w-full justify-start gap-2">
+        <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+        <div className="w-full max-w-[80%] space-y-2">
+          <Skeleton className="h-36 w-[70%] rounded-2xl" />
+          <Skeleton className="h-8 w-[50%] rounded-2xl" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ChatArea({
@@ -32,16 +55,32 @@ export default function ChatArea({
 
   const { currentModelId } = useModelStore();
   const { createdChatIds, markAsCreated, resetKey } = useChatStatusStore();
+  const { isNavigating, navigatingToChatId, setNavigating } = useUIStore();
 
   const stableId = useMemo(
     () => (resetKey ? serverChatId || nanoid(10) : serverChatId || nanoid(10)),
     [serverChatId, resetKey],
   );
 
+  // Derive loading state from navigation state
+  const isInitialLoading = useMemo(() => {
+    return (
+      isNavigating &&
+      navigatingToChatId !== null &&
+      navigatingToChatId !== serverChatId
+    );
+  }, [isNavigating, navigatingToChatId, serverChatId]);
+
   // Reset refs when chatId changes
   useEffect(() => {
     shouldAutoScrollRef.current = true;
-  }, [stableId]);
+    if (
+      navigatingToChatId === serverChatId ||
+      (!serverChatId && navigatingToChatId === null)
+    ) {
+      setNavigating(false);
+    }
+  }, [stableId, serverChatId, navigatingToChatId, setNavigating]);
 
   const {
     messages,
@@ -117,47 +156,41 @@ export default function ChatArea({
     }
   };
 
-  const scrollToBottom = useCallback(
-    (behavior: "smooth" | "instant" = "instant") => {
-      const container = scrollRef.current;
-      if (container) {
-        container.scrollTo({
-          top: container.scrollHeight,
-          behavior: behavior,
-        });
-      }
-    },
-    [],
-  );
-
-  const handleScroll = () => {
+  // Simple scroll to bottom
+  const scrollToBottom = useCallback(() => {
     const container = scrollRef.current;
     if (!container) return;
+    container.scrollTop = container.scrollHeight;
+  }, []);
 
+  // Check if user is near bottom
+  const checkIsAtBottom = useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return true;
     const { scrollTop, scrollHeight, clientHeight } = container;
-    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-    const isAtBottom = distanceFromBottom <= 30;
+    return scrollHeight - scrollTop - clientHeight <= 50;
+  }, []);
 
-    shouldAutoScrollRef.current = isAtBottom;
+  // Handle scroll events
+  const handleScroll = useCallback(() => {
+    const isAtBottom = checkIsAtBottom();
     setShowScrollButton(!isAtBottom);
-  };
+    shouldAutoScrollRef.current = isAtBottom;
+  }, [checkIsAtBottom]);
 
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+  // Handle wheel events - disable auto scroll when user scrolls up
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     if (e.deltaY < 0) {
       shouldAutoScrollRef.current = false;
     }
-  };
+  }, []);
 
+  // Auto-scroll effect
   useEffect(() => {
     if (shouldAutoScrollRef.current) {
-      const container = scrollRef.current;
-      if (container) {
-        requestAnimationFrame(() => {
-          scrollToBottom("instant");
-        });
-      }
+      scrollToBottom();
     }
-  }, [messages, scrollToBottom]);
+  }, [messages, status, scrollToBottom]);
 
   const handleSendMessage = async (inputValue: string, attachments: File[]) => {
     shouldAutoScrollRef.current = true;
@@ -179,12 +212,36 @@ export default function ChatArea({
       markAsCreated(stableId);
       console.log("Creating new chat");
       window.history.replaceState(null, "", `/chat/${stableId}`);
-      // Create new chat
       await createChat(currentModelId, stableId);
       mutate("chat-list");
       generateTitle(inputValue, stableId);
     }
   };
+
+  // Handle scroll to bottom button click
+  const handleScrollToBottomClick = useCallback(() => {
+    shouldAutoScrollRef.current = true;
+    scrollToBottom();
+    setShowScrollButton(false);
+  }, [scrollToBottom]);
+
+  // Show loading skeleton when navigating to another chat
+  if (isInitialLoading) {
+    return (
+      <div className="relative mx-auto flex h-full max-w-5xl flex-1 flex-col p-2 pt-4">
+        <div className="flex-1 overflow-hidden">
+          <MessageSkeleton />
+        </div>
+        <InputBox
+          onSubmit={handleSendMessage}
+          status={status}
+          stop={stop}
+          currentChatId={stableId}
+          disabled
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="relative mx-auto flex h-full max-w-5xl flex-1 flex-col p-2 pt-4">
@@ -192,7 +249,7 @@ export default function ChatArea({
         ref={scrollRef}
         onScroll={handleScroll}
         onWheel={handleWheel}
-        className="scrollbar-hide flex-1 overflow-y-auto scroll-smooth"
+        className="scrollbar-hide flex-1 overflow-y-auto"
       >
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
@@ -241,11 +298,7 @@ export default function ChatArea({
         <div className="absolute right-0 left-0" style={{ bottom: "180px" }}>
           <div className="mx-auto max-w-4xl text-center">
             <Button
-              onClick={() => {
-                scrollToBottom("smooth");
-                shouldAutoScrollRef.current = true;
-                setShowScrollButton(false);
-              }}
+              onClick={handleScrollToBottomClick}
               aria-label="Scroll to bottom"
               variant="outline"
               className="rounded-full shadow-md"
